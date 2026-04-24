@@ -11,14 +11,14 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
 
-        // ⚠️ Use correct case
+        
         String regNo = "RA2311003020408";
 
         String BASE = "https://devapigw.vidalhealthtpa.com/srm-quiz-task";
 
         HttpClient client = HttpClient.newHttpClient();
 
-        // track full event to avoid duplicates across polls
+        
         Set<String> seen = new HashSet<>();
 
         // total score per participant
@@ -55,7 +55,7 @@ public class Main {
 
                 JSONObject e = events.getJSONObject(j);
 
-                // ✅ CORRECT DEDUP: roundId + participant (as per assignment spec)
+                //  CORRECT DEDUP: roundId + participant (as per assignment spec)
                 String roundId = e.getString("roundId");
                 String participant = e.getString("participant");
                 String key = roundId + "|" + participant;
