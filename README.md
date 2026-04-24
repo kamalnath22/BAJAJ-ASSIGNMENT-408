@@ -1,98 +1,100 @@
-# Quiz Leaderboard System
+# Quiz Leaderboard System — Bajaj Finserv Health Internship Assignment
 
-## Overview
+**Registration Number:** RA2311003020408
 
-This project implements a backend solution for generating a leaderboard from quiz data fetched via an external API. The system polls multiple API responses, handles duplicate data correctly, and computes total scores for participants.
+## Problem Statement
 
----
+Build an application that polls a quiz validator API 10 times, deduplicates overlapping event data, aggregates scores per participant, and submits a sorted leaderboard.
 
-## Approach
+## Solution Approach
 
-### 1. API Polling
+### Architecture
+- **Language:** Java 17+ (uses `java.net.http.HttpClient`)
+- **JSON Library:** `org.json` (json-20231013.jar)
+- **Single-file design** — `Main.java` contains all logic
 
-* The API is called **10 times** using `poll` values from `0` to `9`.
-* A **5-second delay** is maintained between each request as required.
+### How It Works
 
-### 2. Handling Duplicate Data
+1. **Polling**: The program calls `GET /quiz/messages?regNo=RA2311003020408&poll={0..9}` — 10 times total, with a **mandatory 5-second delay** between each request.
 
-* The same event data can appear across multiple API responses.
-* To avoid duplicate counting, a `HashSet` is used to track processed events.
-* Each event is uniquely identified using its **full JSON representation**:
+2. **Deduplication**: Each event is uniquely identified by the composite key `roundId + "|" + participant`. A `HashSet<String>` tracks all seen keys. If a key has already been seen, the event is skipped — preventing double-counting of scores from duplicate API responses.
 
-  ```
-  event.toString()
-  ```
-* This ensures only truly repeated events are ignored.
+3. **Aggregation**: Scores are accumulated per participant in a `HashMap<String, Integer>` using `Map.merge()`.
 
-### 3. Score Aggregation
+4. **Leaderboard Generation**: Entries are sorted in **descending order** by `totalScore`.
 
-* A `HashMap` is used to accumulate total scores per participant.
-* Scores are updated only when a new unique event is encountered.
+5. **Submission**: The sorted leaderboard is submitted via `POST /quiz/submit` as a JSON payload.
 
-### 4. Leaderboard Generation
+### Why `roundId + participant` for Deduplication?
 
-* The final scores are sorted in **descending order**.
-* A leaderboard is constructed in the required JSON format.
+In distributed systems, the same event can be delivered multiple times across different API polls. The assignment specifies that `(roundId, participant)` uniquely identifies a scoring event — meaning each participant scores **exactly once** per round. Using the full JSON object string would be fragile (field ordering is not guaranteed in JSON), so the composite key approach is both correct and robust.
 
-### 5. Submission
+## Results
 
-* The final leaderboard is submitted via a **POST request**.
-* Submission is performed only once as per instructions.
+| Participant | Total Score |
+|-------------|-------------|
+| Bob         | 295         |
+| Alice       | 280         |
+| Charlie     | 260         |
+| **Total**   | **835**     |
 
----
+- **Unique events**: 9
+- **Duplicates filtered**: Multiple events correctly ignored across polls
 
 ## How to Run
 
 ### Prerequisites
+- Java 17 or higher
+- `json-20231013.jar` (included in repo)
 
-* Java (JDK 11 or above)
+### Compile & Run
 
-### Steps
+```bash
+javac -cp json-20231013.jar Main.java
+java -cp .:json-20231013.jar Main
+```
 
-1. Compile:
+> **Note:** On Windows, use `;` instead of `:` as the classpath separator:
+> ```bash
+> java -cp .;json-20231013.jar Main
+> ```
 
-   ```
-   javac -cp ".:json-20231013.jar" Main.java
-   ```
+### Expected Output
 
-2. Run:
+```
+Poll 0 completed — 2 new, 0 duplicates
+Poll 1 completed — 1 new, 0 duplicates
+Poll 2 completed — 1 new, 1 duplicates
+Poll 3 completed — 0 new, 1 duplicates
+Poll 4 completed — 1 new, 1 duplicates
+Poll 5 completed — 1 new, 0 duplicates
+Poll 6 completed — 2 new, 0 duplicates
+Poll 7 completed — 0 new, 1 duplicates
+Poll 8 completed — 1 new, 1 duplicates
+Poll 9 completed — 0 new, 1 duplicates
 
-   ```
-   java -cp ".:json-20231013.jar" Main
-   ```
+--- Final Scores ---
+Bob : 295
+Alice : 280
+Charlie : 260
+Total Score = 835
+Unique events = 9
 
----
+--- Server Response ---
+{"regNo":"RA2311003020408","totalPollsMade":72,"submittedTotal":835,"attemptCount":7}
+```
 
-## Notes
+## File Structure
 
-* The implementation follows the required logic for polling, deduplication, and leaderboard generation.
+```
+├── Main.java           # Main application source code
+├── json-20231013.jar   # JSON parsing library
+└── README.md           # This file
+```
 
-* A standard JSON parsing library (`org.json`) is used for robustness.
+## Key Design Decisions
 
-* During later testing phases, the API occasionally returned:
-
-  ```
-  "no available server"
-  ```
-
-  or partial data, likely due to **rate limiting or server-side constraints**.
-
-* However, earlier executions confirmed:
-
-  * Correct polling logic
-  * Proper duplicate handling
-  * Accurate score aggregation
-
----
-
-## Tech Stack
-
-* Java
-* HttpClient API
-* org.json library
-
----
-
-## Conclusion
-
-This solution correctly implements the required logic for handling repeated API responses, aggregating participant scores, and generating a leaderboard. The design ensures correctness even in the presence of duplicate or repeated data.
+1. **Composite dedup key** (`roundId|participant`) — avoids JSON serialization inconsistencies
+2. **Graceful error handling** — non-JSON responses are skipped without crashing
+3. **5-second mandatory delay** — ensures compliance with API rate limiting
+4. **Single submission** — leaderboard is submitted only once after all data is collected

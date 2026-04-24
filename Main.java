@@ -55,14 +55,14 @@ public class Main {
 
                 JSONObject e = events.getJSONObject(j);
 
-                // ✅ CORRECT DEDUP: full event identity
-                String key = e.toString();
+                // ✅ CORRECT DEDUP: roundId + participant (as per assignment spec)
+                String roundId = e.getString("roundId");
+                String participant = e.getString("participant");
+                String key = roundId + "|" + participant;
 
                 if (seen.add(key)) {
-                    String name = e.getString("participant");
                     int score = e.getInt("score");
-
-                    scoreMap.merge(name, score, Integer::sum);
+                    scoreMap.merge(participant, score, Integer::sum);
                     newEvents++;
                 } else {
                     dupEvents++;
