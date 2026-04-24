@@ -12,7 +12,7 @@ public class Main {
     public static void main(String[] args) throws Exception {
 
         
-        String regNo = "RA2311003020408";
+        String regNo = "Ra2311003020408";
 
         String BASE = "https://devapigw.vidalhealthtpa.com/srm-quiz-task";
 
